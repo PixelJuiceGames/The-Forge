@@ -105,6 +105,10 @@ typedef struct TextureLoadDesc
     TextureCreationFlags mCreationFlag;
     /// The texture file format (dds/ktx/...)
     TextureContainerType mContainer;
+#if defined(BINDLESS_RESOURCES)
+    const void*          pTextureData;
+    size_t               mTextureDataSize;
+#endif
 } TextureLoadDesc;
 
 typedef struct BufferChunk

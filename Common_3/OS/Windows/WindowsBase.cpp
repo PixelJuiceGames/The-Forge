@@ -259,6 +259,7 @@ void setupPlatformUI(const IApp::Settings* pSettings)
     gSelectedApiIndex = gPlatformParameters.mSelectedRendererApi;
 
 #ifdef ENABLE_FORGE_UI
+#if !defined(HIDE_FORGE_UI)
 
     // WINDOW AND RESOLUTION CONTROL
     extern void platformSetupWindowSystemUI(IApp*);
@@ -355,6 +356,9 @@ void setupPlatformUI(const IApp::Settings* pSettings)
         scriptDescs[i].pScriptFileName = sLastTestScripts[i];
     }
     luaDefineScripts(scriptDescs, numScripts);
+#endif
+#else
+    UNREF_PARAM(pSettings);
 #endif
 #endif
 }

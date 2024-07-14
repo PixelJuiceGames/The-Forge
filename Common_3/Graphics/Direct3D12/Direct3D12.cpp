@@ -2751,6 +2751,9 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
             // Query the level of support of Shader Model.
             D3D12_FEATURE_DATA_SHADER_MODEL   shaderModelSupport = { D3D_SHADER_MODEL_6_0 };
             D3D12_FEATURE_DATA_D3D12_OPTIONS1 waveIntrinsicsSupport = {};
+#if defined(BINDLESS_RESOURCES)
+            shaderModelSupport = { D3D_SHADER_MODEL_6_6 };
+#endif
             if (!SUCCEEDED(pRenderer->mDx.pDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_SHADER_MODEL, &shaderModelSupport,
                                                                        sizeof(shaderModelSupport))))
             {
@@ -2765,7 +2768,11 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
 
             // If the device doesn't support SM6 or Wave Intrinsics, try enabling the experimental feature for Shader Model 6 and creating
             // the device again.
+#if defined(BINDLESS_RESOURCES)
+            if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_6 || waveIntrinsicsSupport.WaveOps == FALSE)
+#else
             if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || waveIntrinsicsSupport.WaveOps == FALSE)
+#endif
             {
                 RENDERDOC_API_1_1_2* rdoc_api = NULL;
                 // At init, on windows
@@ -2780,7 +2787,11 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
                 {
                     // If the device still doesn't support SM6 or Wave Intrinsics after enabling the experimental feature, you could set up
                     // your application to use the highest supported shader model. For simplicity we just exit the application here.
+#if defined(BINDLESS_RESOURCES)
+                    if (shaderModelSupport.HighestShaderModel < D3D_SHADER_MODEL_6_6 ||
+#else
                     if (shaderModelSupport.HighestShaderModel < D3D_SHADER_MODEL_6_0 ||
+#endif
                         (waveIntrinsicsSupport.WaveOps == FALSE && !SUCCEEDED(EnableExperimentalShaderModels())))
                     {
                         RemoveDevice(pRenderer);
@@ -3560,6 +3571,14 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
     if (!(pDesc->mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION))
     {
         DescriptorHeap* pHeap = pRenderer->mDx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV];
+        DescriptorHeap* pOptionalHeap = NULL;
+#if defined(BINDLESS_RESOURCES)
+        if (pDesc->bBindless)
+        {
+            pHeap = pRenderer->mDx.pCbvSrvUavHeaps[0];
+            pOptionalHeap = pHeap;
+        }
+#endif
         uint32_t        handleCount = ((pDesc->mDescriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER) ? 1 : 0) +
                                ((pDesc->mDescriptors & DESCRIPTOR_TYPE_BUFFER) ? 1 : 0) +
                                ((pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER) ? 1 : 0);
@@ -3581,13 +3600,13 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
             pBuffer->mDx.mUavDescriptorOffset = pBuffer->mDx.mSrvDescriptorOffset + 1;
             if (pDesc->mFormat != TinyImageFormat_UNDEFINED)
             {
-                AddTypedBufferSrv(pRenderer, NULL, pBuffer->mDx.pResource, pDesc->mFirstElement, pDesc->mElementCount, pDesc->mFormat,
+                AddTypedBufferSrv(pRenderer, pOptionalHeap, pBuffer->mDx.pResource, pDesc->mFirstElement, pDesc->mElementCount, pDesc->mFormat,
                                   &srv);
             }
             else
             {
                 const bool raw = DESCRIPTOR_TYPE_BUFFER_RAW == (pDesc->mDescriptors & DESCRIPTOR_TYPE_BUFFER_RAW);
-                AddBufferSrv(pRenderer, NULL, pBuffer->mDx.pResource, raw, pDesc->mFirstElement, pDesc->mElementCount, pDesc->mStructStride,
+                AddBufferSrv(pRenderer, pOptionalHeap, pBuffer->mDx.pResource, raw, pDesc->mFirstElement, pDesc->mElementCount, pDesc->mStructStride,
                              &srv);
             }
         }
@@ -3597,14 +3616,14 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
             DxDescriptorID uav = pBuffer->mDx.mDescriptors + pBuffer->mDx.mUavDescriptorOffset;
             if (pDesc->mFormat != TinyImageFormat_UNDEFINED)
             {
-                AddTypedBufferUav(pRenderer, NULL, pBuffer->mDx.pResource, pDesc->mFirstElement, pDesc->mElementCount, pDesc->mFormat,
+                AddTypedBufferUav(pRenderer, pOptionalHeap, pBuffer->mDx.pResource, pDesc->mFirstElement, pDesc->mElementCount, pDesc->mFormat,
                                   &uav);
             }
             else
             {
                 const bool      raw = DESCRIPTOR_TYPE_RW_BUFFER_RAW == (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER_RAW);
                 ID3D12Resource* pCounterBuffer = pDesc->pCounterBuffer ? pDesc->pCounterBuffer->mDx.pResource : NULL;
-                AddBufferUav(pRenderer, NULL, pBuffer->mDx.pResource, pCounterBuffer, 0, raw, pDesc->mFirstElement, pDesc->mElementCount,
+                AddBufferUav(pRenderer, pOptionalHeap, pBuffer->mDx.pResource, pCounterBuffer, 0, raw, pDesc->mFirstElement, pDesc->mElementCount,
                              pDesc->mStructStride, &uav);
             }
         }
@@ -3927,6 +3946,12 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
     }
 
     DescriptorHeap* pHeap = pRenderer->mDx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV];
+#if defined(BINDLESS_RESOURCES)
+    if (pDesc->bBindless)
+    {
+        pHeap = pRenderer->mDx.pCbvSrvUavHeaps[0];
+    }
+#endif
     uint32_t        handleCount = (descriptors & DESCRIPTOR_TYPE_TEXTURE) ? 1 : 0;
     handleCount += (descriptors & DESCRIPTOR_TYPE_RW_TEXTURE) ? pDesc->mMipLevels : 0;
     pTexture->mDx.mDescriptors = consume_descriptor_handles(pHeap, handleCount);
@@ -3937,7 +3962,11 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
 
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         srvDesc.Format = util_to_dx12_srv_format(dxFormat);
+#if defined(BINDLESS_RESOURCES)
+        AddSrv(pRenderer, pHeap, pTexture->mDx.pResource, &srvDesc, &pTexture->mDx.mDescriptors);
+#else
         AddSrv(pRenderer, NULL, pTexture->mDx.pResource, &srvDesc, &pTexture->mDx.mDescriptors);
+#endif
         ++pTexture->mDx.mUavStartIndex;
     }
 
@@ -3951,7 +3980,11 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
             uavDesc.Texture1DArray.MipSlice = i;
             if (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
                 uavDesc.Texture3D.WSize = desc.DepthOrArraySize / (UINT)pow(2.0, int(i));
+#if defined(BINDLESS_RESOURCES)
+            AddUav(pRenderer, pHeap, pTexture->mDx.pResource, NULL, &uavDesc, &handle);
+#else
             AddUav(pRenderer, NULL, pTexture->mDx.pResource, NULL, &uavDesc, &handle);
+#endif
         }
     }
 
@@ -4790,6 +4823,10 @@ void d3d12_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
     if (!(shaderStages & SHADER_STAGE_FRAG))
         rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
 
+#if defined(BINDLESS_RESOURCES)
+    rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+#endif
+
     hook_modify_rootsignature_flags(shaderStages, &rootSignatureFlags);
 
     ID3DBlob* error = NULL;
@@ -5288,7 +5325,7 @@ void d3d12_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescr
     ASSERT(pDescriptorSet);
     ASSERT(index < pDescriptorSet->mDx.mMaxSets);
 
-    const DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)pDescriptorSet->mDx.mUpdateFrequency;
+    // const DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)pDescriptorSet->mDx.mUpdateFrequency;
 
     // Set root signature if the current one differs from pRootSignature
     ResetRootSignature(pCmd, (PipelineType)pDescriptorSet->mDx.mPipelineType, pDescriptorSet->mDx.pRootSignature);
