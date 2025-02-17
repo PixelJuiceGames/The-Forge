@@ -166,6 +166,7 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Threading\Atomics.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Threading\ThreadSystem.h" />
   </ItemGroup>
+  <!--
   <ItemGroup>
     <FSLShader Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\copy.comp.fsl" />
     <FSLShader Include="..\..\..\..\..\Common_3\Application\Screenshot\Shaders\FSL\screenshot_shaders.list" />
@@ -184,23 +185,24 @@
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\joint.frag.fsl" />
     <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\joint.vert.fsl" />
   </ItemGroup>
+  -->
   <PropertyGroup Label="Globals">
     <ProjectGuid>{30DD3D57-0026-48C8-BFD1-6392F319E23A}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>OS</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -240,9 +242,10 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
-      <Command>%(Command) 
+      <Command>%(Command)
       </Command>
     </PostBuildEvent>
+    <!--
     <FSLShader>
       <OutDir>$(OutDir)/$(ProjectName)/Shaders</OutDir>
       <BinaryOutDir>$(OutDir)/$(ProjectName)/CompiledShaders</BinaryOutDir>
@@ -251,6 +254,7 @@
       </Port>
       <CacheArgs>false</CacheArgs>
     </FSLShader>
+    -->
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -268,7 +272,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>
-        vulkan-1.lib;
+        <!-- vulkan-1.lib; -->
         %(AdditionalDependencies)
       </AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
@@ -279,18 +283,22 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
-      <Command>%(Command) 
+      <Command>%(Command)
       </Command>
     </PostBuildEvent>
+    <!--
     <FSLShader>
       <OutDir>$(OutDir)/$(ProjectName)/Shaders</OutDir>
       <BinaryOutDir>$(OutDir)/$(ProjectName)/CompiledShaders</BinaryOutDir>
       <Language>DIRECT3D12</Language>
       <CacheArgs>false</CacheArgs>
     </FSLShader>
+    -->
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <!--
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\VS\fsl.targets" />
   </ImportGroup>
+  -->
 </Project>

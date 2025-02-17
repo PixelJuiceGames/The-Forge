@@ -199,9 +199,9 @@ struct MutexLock
     ~MutexLock() { releaseMutex(&mMutex); }
 
     /// Prevent copy construction.
-    MutexLock(const MutexLock& rhs) = delete;
+    // MutexLock(const MutexLock& rhs) = delete;
     /// Prevent assignment.
-    MutexLock& operator=(const MutexLock& rhs) = delete;
+    // MutexLock& operator=(const MutexLock& rhs) = delete;
 
     Mutex& mMutex;
 };
