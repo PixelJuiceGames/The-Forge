@@ -964,6 +964,9 @@ typedef struct BufferDesc
     /// The index of the GPU in SLI/Cross-Fire that owns this buffer, or the Renderer index in unlinked mode.
     uint32_t             mNodeIndex;
     uint32_t             mSharedNodeIndexCount;
+
+    /// Is this a bindless buffer
+    bool                 bBindless;
 } BufferDesc;
 
 typedef struct DEFINE_ALIGNED(Buffer, 64)
@@ -2562,6 +2565,8 @@ typedef enum ShaderTarget
     SHADER_TARGET_6_2,
     SHADER_TARGET_6_3, // required for Raytracing
     SHADER_TARGET_6_4, // required for VRS
+    SHADER_TARGET_6_5,
+    SHADER_TARGET_6_6, // required for Dynamic Resources
 } ShaderTarget;
 
 typedef enum GpuMode

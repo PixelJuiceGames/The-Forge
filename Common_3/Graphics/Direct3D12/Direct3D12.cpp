@@ -2666,7 +2666,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
         if (pRenderer->mShaderTarget >= SHADER_TARGET_6_0)
         {
             // Query the level of support of Shader Model.
-            D3D12_FEATURE_DATA_SHADER_MODEL   shaderModelSupport = { D3D_SHADER_MODEL_6_0 };
+            D3D12_FEATURE_DATA_SHADER_MODEL   shaderModelSupport = { D3D_SHADER_MODEL_6_6 };
             D3D12_FEATURE_DATA_D3D12_OPTIONS1 waveIntrinsicsSupport = {};
             if (!SUCCEEDED(pRenderer->mDx.pDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_SHADER_MODEL, &shaderModelSupport,
                                                                        sizeof(shaderModelSupport))))
@@ -2682,7 +2682,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 
             // If the device doesn't support SM6 or Wave Intrinsics, try enabling the experimental feature for Shader Model 6 and creating
             // the device again.
-            if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || waveIntrinsicsSupport.WaveOps == FALSE)
+            if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_6 || waveIntrinsicsSupport.WaveOps == FALSE)
             {
                 RENDERDOC_API_1_1_2* rdoc_api = NULL;
                 // At init, on windows
@@ -2701,14 +2701,14 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
                         (waveIntrinsicsSupport.WaveOps == FALSE && !SUCCEEDED(EnableExperimentalShaderModels())))
                     {
                         RemoveDevice(pRenderer);
-                        LOGF(LogLevel::eERROR, "Hardware does not support Shader Model 6.0");
+                        LOGF(LogLevel::eERROR, "Hardware does not support Shader Model 6.6");
                         return;
                     }
                 }
                 else
                 {
                     LOGF(LogLevel::eWARNING,
-                         "\nRenderDoc does not support SM 6.0 or higher. Application might work but you won't be able to debug the SM 6.0+ "
+                         "\nRenderDoc does not support SM 6.6 or higher. Application might work but you won't be able to debug the SM 6.6+ "
                          "shaders or view their bytecode.");
                 }
             }
@@ -3507,6 +3507,14 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
     if (!(pDesc->mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION))
     {
         DescriptorHeap* pHeap = pRenderer->mDx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV];
+        DescriptorHeap* pOptionalHeap = NULL;
+
+        if (pDesc->bBindless)
+        {
+            pHeap = pRenderer->mDx.pCbvSrvUavHeaps[0];
+            pOptionalHeap = pHeap;
+        }
+
         uint32_t        handleCount = ((pDesc->mDescriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER) ? 1 : 0) +
                                ((pDesc->mDescriptors & DESCRIPTOR_TYPE_BUFFER) ? 1 : 0) +
                                ((pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER) ? 1 : 0);
@@ -3528,13 +3536,15 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
             pBuffer->mDx.mUavDescriptorOffset = pBuffer->mDx.mSrvDescriptorOffset + 1;
             if (pDesc->mFormat != TinyImageFormat_UNDEFINED)
             {
-                AddTypedBufferSrv(pRenderer, NULL, pBuffer->mDx.pResource, pDesc->mFirstElement, pDesc->mElementCount, pDesc->mFormat,
+                AddTypedBufferSrv(pRenderer, pOptionalHeap, pBuffer->mDx.pResource, pDesc->mFirstElement, pDesc->mElementCount,
+                                  pDesc->mFormat,
                                   &srv);
             }
             else
             {
                 const bool raw = DESCRIPTOR_TYPE_BUFFER_RAW == (pDesc->mDescriptors & DESCRIPTOR_TYPE_BUFFER_RAW);
-                AddBufferSrv(pRenderer, NULL, pBuffer->mDx.pResource, raw, pDesc->mFirstElement, pDesc->mElementCount, pDesc->mStructStride,
+                AddBufferSrv(pRenderer, pOptionalHeap, pBuffer->mDx.pResource, raw, pDesc->mFirstElement, pDesc->mElementCount,
+                             pDesc->mStructStride,
                              &srv);
             }
         }
@@ -3544,14 +3554,16 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
             DxDescriptorID uav = pBuffer->mDx.mDescriptors + pBuffer->mDx.mUavDescriptorOffset;
             if (pDesc->mFormat != TinyImageFormat_UNDEFINED)
             {
-                AddTypedBufferUav(pRenderer, NULL, pBuffer->mDx.pResource, pDesc->mFirstElement, pDesc->mElementCount, pDesc->mFormat,
+                AddTypedBufferUav(pRenderer, pOptionalHeap, pBuffer->mDx.pResource, pDesc->mFirstElement, pDesc->mElementCount,
+                                  pDesc->mFormat,
                                   &uav);
             }
             else
             {
                 const bool      raw = DESCRIPTOR_TYPE_RW_BUFFER_RAW == (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER_RAW);
                 ID3D12Resource* pCounterBuffer = pDesc->pCounterBuffer ? pDesc->pCounterBuffer->mDx.pResource : NULL;
-                AddBufferUav(pRenderer, NULL, pBuffer->mDx.pResource, pCounterBuffer, 0, raw, pDesc->mFirstElement, pDesc->mElementCount,
+                AddBufferUav(pRenderer, pOptionalHeap, pBuffer->mDx.pResource, pCounterBuffer, 0, raw, pDesc->mFirstElement,
+                             pDesc->mElementCount,
                              pDesc->mStructStride, &uav);
             }
         }
