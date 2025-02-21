@@ -105,6 +105,9 @@ typedef struct TextureLoadDesc
     TextureCreationFlags mCreationFlag;
     /// The texture file format (dds/ktx/...)
     TextureContainerType mContainer;
+    ///
+    const void*          pTextureData;
+    size_t               mTextureDataSize;
 } TextureLoadDesc;
 
 typedef struct BufferChunk

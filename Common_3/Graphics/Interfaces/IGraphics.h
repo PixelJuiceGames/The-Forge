@@ -964,7 +964,6 @@ typedef struct BufferDesc
     /// The index of the GPU in SLI/Cross-Fire that owns this buffer, or the Renderer index in unlinked mode.
     uint32_t             mNodeIndex;
     uint32_t             mSharedNodeIndexCount;
-
     /// Is this a bindless buffer
     bool                 bBindless;
 } BufferDesc;
@@ -1093,6 +1092,8 @@ typedef struct TextureDesc
     uint32_t             mSharedNodeIndexCount;
     /// GPU which will own this texture
     uint32_t             mNodeIndex;
+    /// Is this a bindless texture
+    bool                 bBindless;
 } TextureDesc;
 
 typedef struct DEFINE_ALIGNED(Texture, 64)

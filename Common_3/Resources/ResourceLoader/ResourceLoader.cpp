@@ -542,6 +542,9 @@ struct TextureLoadDescInternal
             TextureCreationFlags mFlags;
             TextureContainerType mContainer;
             uint32_t             mNodeIndex;
+            const void*          pTextureData;
+            size_t               mTextureDataSize;
+            TextureDesc*         pTextureDesc;
         };
         struct
         {
@@ -1442,6 +1445,12 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                 textureDesc.pSamplerYcbcrConversionInfo = &pTextureDesc->pYcbcrSampler->mVk.mSamplerYcbcrConversionInfo;
             }
 #endif
+
+            if (pTextureDesc->pTextureDesc)
+            {
+                textureDesc.bBindless = pTextureDesc->pTextureDesc->bBindless;
+            }
+
             addTexture(pRenderer, &textureDesc, pTextureDesc->ppTexture);
 
             updateDesc.mStream = stream;
@@ -1471,6 +1480,8 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
             return res;
         }
     }
+
+    // TODO(gmodarelli): Create texture from description (no filename)
 
     LOGF(eERROR, "Failed to open texture file %s", pTextureDesc->pFileName ? pTextureDesc->pFileName : "<NULL>");
     ASSERT(false);
@@ -3189,7 +3200,7 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
         *token = max<uint64_t>(0, *token);
     }
 
-    if (!pTextureDesc->pFileName && pTextureDesc->pDesc)
+    if (!pTextureDesc->pFileName && !pTextureDesc->pTextureData && pTextureDesc->pDesc)
     {
         ASSERT(pTextureDesc->pDesc->mStartState);
 
@@ -3230,6 +3241,9 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
             loadDesc.ppTexture = pTextureDesc->ppTexture;
             loadDesc.mForceReset = true;
             loadDesc.mStartState = pTextureDesc->pDesc->mStartState;
+            loadDesc.pTextureData = pTextureDesc->pTextureData;
+            loadDesc.mTextureDataSize = pTextureDesc->mTextureDataSize;
+            loadDesc.pTextureDesc = pTextureDesc->pDesc;
             queueTextureLoad(pResourceLoader, &loadDesc, token);
 #endif
             return;
@@ -3255,6 +3269,9 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
         loadDesc.mNodeIndex = pTextureDesc->mNodeIndex;
         loadDesc.pFileName = pTextureDesc->pFileName;
         loadDesc.pYcbcrSampler = pTextureDesc->pYcbcrSampler;
+        loadDesc.pTextureData = pTextureDesc->pTextureData;
+        loadDesc.mTextureDataSize = pTextureDesc->mTextureDataSize;
+        loadDesc.pTextureDesc = pTextureDesc->pDesc;
         queueTextureLoad(pResourceLoader, &loadDesc, token);
     }
 }

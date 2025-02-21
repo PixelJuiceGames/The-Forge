@@ -3890,6 +3890,12 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
     }
 
     DescriptorHeap* pHeap = pRenderer->mDx.pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV];
+    DescriptorHeap* pOptionalHeap = NULL;
+    if (pDesc->bBindless)
+    {
+        pHeap = pRenderer->mDx.pCbvSrvUavHeaps[0];
+        pOptionalHeap = pHeap;
+    }
     uint32_t        handleCount = (descriptors & DESCRIPTOR_TYPE_TEXTURE) ? 1 : 0;
     handleCount += (descriptors & DESCRIPTOR_TYPE_RW_TEXTURE) ? pDesc->mMipLevels : 0;
     pTexture->mDx.mDescriptors = consume_descriptor_handles(pHeap, handleCount);
@@ -3900,7 +3906,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         srvDesc.Format = util_to_dx12_srv_format(dxFormat);
-        AddSrv(pRenderer, NULL, pTexture->mDx.pResource, &srvDesc, &pTexture->mDx.mDescriptors);
+        AddSrv(pRenderer, pOptionalHeap, pTexture->mDx.pResource, &srvDesc, &pTexture->mDx.mDescriptors);
         ++pTexture->mDx.mUavStartIndex;
     }
 
@@ -3914,7 +3920,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
             uavDesc.Texture1DArray.MipSlice = i;
             if (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
                 uavDesc.Texture3D.WSize = desc.DepthOrArraySize / (UINT)pow(2.0, int(i));
-            AddUav(pRenderer, NULL, pTexture->mDx.pResource, NULL, &uavDesc, &handle);
+            AddUav(pRenderer, pOptionalHeap, pTexture->mDx.pResource, NULL, &uavDesc, &handle);
         }
     }
 
