@@ -2568,6 +2568,8 @@ typedef enum ShaderTarget
     SHADER_TARGET_6_4, // required for VRS
     SHADER_TARGET_6_5,
     SHADER_TARGET_6_6, // required for Dynamic Resources
+    SHADER_TARGET_6_7,
+    SHADER_TARGET_6_8  // required for Extended Command Information
 } ShaderTarget;
 
 typedef enum GpuMode

@@ -1776,7 +1776,8 @@ static inline FORGE_CONSTEXPR uint32_t ToQueryWidth(QueryType type)
 #if !defined(XBOX)
 void util_enumerate_gpus(IDXGIFactory6* dxgiFactory, uint32_t* pGpuCount, DXGPUInfo* gpuDesc, bool* pFoundSoftwareAdapter)
 {
-    D3D_FEATURE_LEVEL feature_levels[4] = {
+    D3D_FEATURE_LEVEL feature_levels[5] = {
+        D3D_FEATURE_LEVEL_12_2,
         D3D_FEATURE_LEVEL_12_1,
         D3D_FEATURE_LEVEL_12_0,
         D3D_FEATURE_LEVEL_11_1,
@@ -2673,7 +2674,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
         if (pRenderer->mShaderTarget >= SHADER_TARGET_6_0)
         {
             // Query the level of support of Shader Model.
-            D3D12_FEATURE_DATA_SHADER_MODEL   shaderModelSupport = { D3D_SHADER_MODEL_6_6 };
+            D3D12_FEATURE_DATA_SHADER_MODEL   shaderModelSupport = { D3D_SHADER_MODEL_6_8 };
             D3D12_FEATURE_DATA_D3D12_OPTIONS1 waveIntrinsicsSupport = {};
             if (!SUCCEEDED(pRenderer->mDx.pDevice->CheckFeatureSupport((D3D12_FEATURE)D3D12_FEATURE_SHADER_MODEL, &shaderModelSupport,
                                                                        sizeof(shaderModelSupport))))
@@ -2689,7 +2690,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 
             // If the device doesn't support SM6 or Wave Intrinsics, try enabling the experimental feature for Shader Model 6 and creating
             // the device again.
-            if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_6 || waveIntrinsicsSupport.WaveOps == FALSE)
+            if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_8 || waveIntrinsicsSupport.WaveOps == FALSE)
             {
                 RENDERDOC_API_1_1_2* rdoc_api = NULL;
                 // At init, on windows
@@ -2704,18 +2705,18 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
                 {
                     // If the device still doesn't support SM6 or Wave Intrinsics after enabling the experimental feature, you could set up
                     // your application to use the highest supported shader model. For simplicity we just exit the application here.
-                    if (shaderModelSupport.HighestShaderModel < D3D_SHADER_MODEL_6_0 ||
+                    if (shaderModelSupport.HighestShaderModel < D3D_SHADER_MODEL_6_8 ||
                         (waveIntrinsicsSupport.WaveOps == FALSE && !SUCCEEDED(EnableExperimentalShaderModels())))
                     {
                         RemoveDevice(pRenderer);
-                        LOGF(LogLevel::eERROR, "Hardware does not support Shader Model 6.6");
+                        LOGF(LogLevel::eERROR, "Hardware does not support Shader Model 6.8");
                         return;
                     }
                 }
                 else
                 {
                     LOGF(LogLevel::eWARNING,
-                         "\nRenderDoc does not support SM 6.6 or higher. Application might work but you won't be able to debug the SM 6.6+ "
+                         "\nRenderDoc does not support SM 6.8 or higher. Application might work but you won't be able to debug the SM 6.8+ "
                          "shaders or view their bytecode.");
                 }
             }
